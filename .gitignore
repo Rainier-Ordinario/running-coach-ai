@@ -5,3 +5,4 @@ venv/
 backend/data/*.json
 node_modules/
 frontend/dist/
+test_oauth.py

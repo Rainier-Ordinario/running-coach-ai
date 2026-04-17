@@ -22,7 +22,7 @@ def ask_coach(question, history, activities_summary):
 
     messages.append({"role": "user", "parts": [question]})
 
-    model = genai.GenerativeModel("gemini-1.5-flash", system_instruction=system_prompt)
+    model = genai.GenerativeModel("gemini-2.0-flash", system_instruction=system_prompt)
     response = model.generate_content(messages)
 
     return response.text
