@@ -1,0 +1,36 @@
+.sync-btn {
+  padding: 10px 16px;
+  background: #FC4C02;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.sync-btn:hover:not(:disabled) {
+  background: #e03d00;
+}
+
+.sync-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sync-success {
+  background: #10b981;
+}
+
+.sync-success:hover {
+  background: #059669;
+}
+
+@media (max-width: 768px) {
+  .sync-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}
