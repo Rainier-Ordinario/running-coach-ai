@@ -4,6 +4,7 @@ import MessageBubble from './MessageBubble'
 function Chat({ messages, loading }) {
   const scrollRef = useRef(null)
 
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -19,6 +20,7 @@ function Chat({ messages, loading }) {
           <MessageBubble key={i} role={msg.role} content={msg.content} />
         ))
       )}
+      {/* Show loading indicator while waiting for coach response */}
       {loading && <MessageBubble role="coach" content={null} />}
     </div>
   )

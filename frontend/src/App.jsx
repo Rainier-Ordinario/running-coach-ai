@@ -9,6 +9,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [synced, setSynced] = useState(false)
 
+  // Check if activity data is available on mount
   useEffect(() => {
     const checkStatus = async () => {
       try {
@@ -27,6 +28,7 @@ function App() {
     setSynced(true)
   }
 
+  // Send message to coach and wait for response
   const handleSendMessage = async (question) => {
     setMessages((prev) => [...prev, { role: 'user', content: question }])
     setLoading(true)
