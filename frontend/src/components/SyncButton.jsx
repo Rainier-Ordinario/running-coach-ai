@@ -15,6 +15,7 @@ function SyncButton({ onSyncComplete }) {
       setCount(data.count)
       setState('success')
 
+      // Reset button after 3 seconds
       setTimeout(() => setState('default'), 3000)
       onSyncComplete()
     } catch (error) {
@@ -23,6 +24,7 @@ function SyncButton({ onSyncComplete }) {
     }
   }
 
+  // Update button text based on state
   let text = 'Sync Strava'
   if (state === 'loading') text = 'Syncing...'
   if (state === 'success') text = `Synced ${count} runs ✓`

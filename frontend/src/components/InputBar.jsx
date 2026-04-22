@@ -11,6 +11,7 @@ function InputBar({ onSendMessage, disabled }) {
     }
   }
 
+  // Submit on Enter, new line on Shift+Enter
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()

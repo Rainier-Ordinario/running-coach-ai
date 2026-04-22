@@ -8,6 +8,7 @@ from coach import ask_coach
 
 app = FastAPI()
 
+# Allow frontend to communicate with backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -19,6 +20,7 @@ app.add_middleware(
 
 @app.get("/api/status")
 def get_status():
+    """Check if activity data exists and get sync status"""
     activities_path = "backend/data/activities.json"
 
     if not os.path.exists(activities_path):
@@ -36,12 +38,14 @@ def get_status():
 
 @app.post("/api/sync")
 def sync_strava():
+    """Fetch activities from Strava and save to local file"""
     count, synced_at = sync()
     return {"status": "ok", "count": count, "synced_at": synced_at}
 
 
 @app.post("/api/chat")
 def chat(request: dict):
+    """Answer coaching questions based on training data"""
     question = request.get("question", "")
     history = request.get("history", [])
 
@@ -50,7 +54,9 @@ def chat(request: dict):
         data = json.load(f)
 
     activities = data.get("activities", [])
+    # Format activities into readable summary for the coach
     activities_summary = format_activities(activities)
 
+    # Get AI response from coach with user's activity context
     answer = ask_coach(question, history, activities_summary)
     return {"answer": answer}
