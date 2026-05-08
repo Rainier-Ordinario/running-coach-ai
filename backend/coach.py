@@ -1,14 +1,15 @@
 import os
-import google.generativeai as genai
+from anthropic import Anthropic
 from dotenv import load_dotenv
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
 
 def ask_coach(question, history, activities_summary):
-    """Get personalized coaching advice from Gemini based on training data"""
+    """Get personalized coaching advice from Claude based on training data"""
+    # Initialize client with API key from environment
+    client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
     # Create system prompt with coach persona and athlete's activity data
     system_prompt = (
         "You are an expert marathon running coach with deep knowledge of training periodization, "
@@ -21,13 +22,17 @@ def ask_coach(question, history, activities_summary):
     # Build message history for conversation continuity
     messages = []
     for msg in history:
-        messages.append({"role": msg["role"], "parts": [msg["content"]]})
+        messages.append({"role": msg["role"], "content": msg["content"]})
 
     # Add current question
-    messages.append({"role": "user", "parts": [question]})
+    messages.append({"role": "user", "content": question})
 
-    # Call Gemini with system prompt and chat history
-    model = genai.GenerativeModel("gemini-2.0-flash", system_instruction=system_prompt)
-    response = model.generate_content(messages)
+    # Call Claude with system prompt and chat history
+    response = client.messages.create(
+        model="claude-3-5-sonnet-20241022",
+        max_tokens=1024,
+        system=system_prompt,
+        messages=messages,
+    )
 
-    return response.text
+    return response.content[0].text

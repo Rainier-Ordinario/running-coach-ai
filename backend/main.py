@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sync import sync
 from formatter import format_activities
 from coach import ask_coach
+from recovery import get_recovery_recommendation
 
 app = FastAPI()
 
@@ -37,8 +38,8 @@ def get_status():
 
 
 @app.post("/api/sync")
-def sync_strava():
-    """Fetch activities from Strava and save to local file"""
+def sync_garmin():
+    """Fetch activities from Garmin and save to local file"""
     count, synced_at = sync()
     return {"status": "ok", "count": count, "synced_at": synced_at}
 
@@ -60,3 +61,17 @@ def chat(request: dict):
     # Get AI response from coach with user's activity context
     answer = ask_coach(question, history, activities_summary)
     return {"answer": answer}
+
+
+@app.get("/api/recovery")
+def recovery():
+    """Get rest vs train recommendation based on health metrics and trends"""
+    activities_path = "backend/data/activities.json"
+    with open(activities_path) as f:
+        data = json.load(f)
+
+    activities = data.get("activities", [])
+    health_data = data.get("health_data", {})
+    # Get recovery recommendation from Gemini using health data and trends
+    recommendation = get_recovery_recommendation(activities, health_data)
+    return {"recommendation": recommendation}

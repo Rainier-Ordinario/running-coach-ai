@@ -1,0 +1,65 @@
+.recovery-advisor {
+  padding: 20px;
+  background: #1e1e1e;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.recovery-advisor h2 {
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+.recovery-advisor p {
+  color: #999;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.recovery-btn {
+  padding: 12px 24px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.recovery-btn:hover:not(:disabled) {
+  background: #059669;
+}
+
+.recovery-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.recommendation-box {
+  background: #0f0f0f;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid #10b981;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: #e0e0e0;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .recovery-advisor {
+    padding: 16px;
+  }
+
+  .recovery-btn {
+    padding: 10px 16px;
+  }
+
+  .recommendation-box {
+    font-size: 12px;
+  }
+}
