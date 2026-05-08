@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Chat from './components/Chat'
 import InputBar from './components/InputBar'
 import SyncButton from './components/SyncButton'
+import RecoveryAdvisor from './components/RecoveryAdvisor'
 import './styles/index.css'
 
 function App() {
@@ -65,10 +66,11 @@ function App() {
 
       {!synced ? (
         <div className="empty-state">
-          <p>Sync your Strava data to get started</p>
+          <p>Sync your Garmin data to get started</p>
         </div>
       ) : (
         <>
+          <RecoveryAdvisor />
           <Chat messages={messages} loading={loading} />
           <InputBar
             onSendMessage={handleSendMessage}

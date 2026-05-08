@@ -1,10 +1,10 @@
 # Marathon AI Coach
 
-An AI-powered marathon training coach that analyzes your Strava running data and provides personalized training advice using Google Gemini.
+An AI-powered marathon training coach that analyzes your Garmin running data and provides personalized training advice using Google Gemini.
 
 ## Features
 
-- Sync running activities from Strava
+- Sync running activities from Garmin Connect
 - AI-powered coaching with context from your training data
 - Chat interface for training questions
 - Real-time activity analysis and pace calculations
@@ -15,7 +15,7 @@ An AI-powered marathon training coach that analyzes your Strava running data and
 
 - Python 3.9+
 - Node.js 18+
-- Strava API credentials (get from https://www.strava.com/settings/api)
+- Garmin Connect account (https://connect.garmin.com)
 - Google Gemini API key (get from https://aistudio.google.com/app/apikeys)
 
 ### Environment Variables
@@ -27,9 +27,8 @@ cp .env.example .env
 ```
 
 Required variables:
-- `STRAVA_CLIENT_ID`: Your Strava app client ID
-- `STRAVA_CLIENT_SECRET`: Your Strava app client secret
-- `STRAVA_REFRESH_TOKEN`: Your Strava refresh token
+- `GARMIN_EMAIL`: Your Garmin Connect email
+- `GARMIN_PASSWORD`: Your Garmin Connect password
 - `GEMINI_API_KEY`: Your Google Gemini API key
 
 ### Backend Setup
@@ -58,11 +57,11 @@ The frontend runs on `http://localhost:5173`
 
 1. Start the backend server
 2. Start the frontend development server
-3. Click "Sync Strava" to import your recent activities
+3. Click "Sync Garmin" to import your recent activities
 4. Ask the coach questions about your training
 
 ## API Endpoints
 
 - `GET /api/status` - Check if data is synced and get activity count
-- `POST /api/sync` - Sync activities from Strava
+- `POST /api/sync` - Sync activities from Garmin
 - `POST /api/chat` - Ask the coach a question
