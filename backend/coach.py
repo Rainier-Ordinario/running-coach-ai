@@ -29,7 +29,7 @@ def ask_coach(question, history, activities_summary):
 
     # Call Claude with system prompt and chat history
     response = client.messages.create(
-        model="claude-3-5-sonnet-20241022",
+        model="claude-opus-4-7",
         max_tokens=1024,
         system=system_prompt,
         messages=messages,
