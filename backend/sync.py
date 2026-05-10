@@ -1,41 +1,43 @@
 import os
 import json
-from datetime import datetime
-from garmin import fetch_activities, fetch_daily_health_data
+import logging
+from datetime import datetime, timezone
+
+from garmin import get_client, fetch_activities, fetch_health_range
+from paths import DATA_DIR, ACTIVITIES_PATH
+
+log = logging.getLogger(__name__)
+
+# Pull a month of daily health data so the recovery advisor has trend context.
+HEALTH_LOOKBACK_DAYS = 30
 
 
 def sync():
-    """Fetch activities and health data from Garmin and save to local JSON file"""
-    data_dir = "backend/data"
-    os.makedirs(data_dir, exist_ok=True)
+    """Pull activities + recent health data from Garmin and write to disk."""
+    os.makedirs(DATA_DIR, exist_ok=True)
 
-    # Get all activities from Garmin
-    activities = fetch_activities()
+    # One login covers both calls.
+    client = get_client()
 
-    # Collect activity dates for health data fetch
-    activity_dates = [a.get("start_date", "") for a in activities if a.get("start_date")]
+    activities = fetch_activities(client)
+    log.info("Fetched %d running activities", len(activities))
 
-    # Fetch daily health metrics for those dates
-    print(f"Fetching health data for {len(activity_dates)} days...")
-    health_data = fetch_daily_health_data(activity_dates)
+    health_data = fetch_health_range(client, days=HEALTH_LOOKBACK_DAYS)
+    log.info("Fetched health data for %d days", len(health_data))
 
-    # Add health data to activities
+    # Attach matching health snapshot onto each activity for quick lookup.
     for activity in activities:
-        activity_date = activity.get("start_date", "").split("T")[0]
-        if activity_date in health_data:
-            activity["health_metrics"] = health_data[activity_date]
+        day = activity.get("start_date", "")[:10]
+        if day in health_data:
+            activity["health_metrics"] = health_data[day]
 
-    # Create output with timestamp, activities, and health data
     output = {
-        "synced_at": datetime.utcnow().isoformat(),
+        "synced_at": datetime.now(timezone.utc).isoformat(),
         "activities": activities,
         "health_data": health_data,
     }
 
-    # Save to file
-    output_path = os.path.join(data_dir, "activities.json")
-    with open(output_path, "w") as f:
+    with open(ACTIVITIES_PATH, "w") as f:
         json.dump(output, f)
 
-    print(f"Synced {len(activities)} activities with health data")
     return len(activities), output["synced_at"]

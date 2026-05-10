@@ -1,15 +1,21 @@
 import os
 import json
-from fastapi import FastAPI
+import logging
+
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
 from sync import sync
 from formatter import format_activities
 from coach import ask_coach
 from recovery import get_recovery_recommendation
+from paths import ACTIVITIES_PATH
+
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI()
 
-# Allow frontend to communicate with backend
+# Allow the Vite dev server to call the API.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -19,15 +25,21 @@ app.add_middleware(
 )
 
 
+def _load_data():
+    """Read the synced activities file. Raises 404 if no sync has run yet."""
+    if not os.path.exists(ACTIVITIES_PATH):
+        raise HTTPException(status_code=404, detail="No data — run a sync first.")
+    with open(ACTIVITIES_PATH) as f:
+        return json.load(f)
+
+
 @app.get("/api/status")
 def get_status():
-    """Check if activity data exists and get sync status"""
-    activities_path = "backend/data/activities.json"
-
-    if not os.path.exists(activities_path):
+    """Report whether synced data exists and when it was last refreshed."""
+    if not os.path.exists(ACTIVITIES_PATH):
         return {"has_data": False, "activity_count": 0, "synced_at": None}
 
-    with open(activities_path) as f:
+    with open(ACTIVITIES_PATH) as f:
         data = json.load(f)
 
     return {
@@ -39,39 +51,29 @@ def get_status():
 
 @app.post("/api/sync")
 def sync_garmin():
-    """Fetch activities from Garmin and save to local file"""
+    """Pull latest activities + health data from Garmin."""
     count, synced_at = sync()
     return {"status": "ok", "count": count, "synced_at": synced_at}
 
 
 @app.post("/api/chat")
 def chat(request: dict):
-    """Answer coaching questions based on training data"""
+    """Answer a coaching question using the athlete's recent training data."""
     question = request.get("question", "")
     history = request.get("history", [])
 
-    activities_path = "backend/data/activities.json"
-    with open(activities_path) as f:
-        data = json.load(f)
-
-    activities = data.get("activities", [])
-    # Format activities into readable summary for the coach
-    activities_summary = format_activities(activities)
-
-    # Get AI response from coach with user's activity context
+    data = _load_data()
+    activities_summary = format_activities(data.get("activities", []))
     answer = ask_coach(question, history, activities_summary)
     return {"answer": answer}
 
 
 @app.get("/api/recovery")
 def recovery():
-    """Get rest vs train recommendation based on health metrics and trends"""
-    activities_path = "backend/data/activities.json"
-    with open(activities_path) as f:
-        data = json.load(f)
-
-    activities = data.get("activities", [])
-    health_data = data.get("health_data", {})
-    # Get recovery recommendation from Gemini using health data and trends
-    recommendation = get_recovery_recommendation(activities, health_data)
+    """Return a rest-vs-train recommendation based on health trends."""
+    data = _load_data()
+    recommendation = get_recovery_recommendation(
+        data.get("activities", []),
+        data.get("health_data", {}),
+    )
     return {"recommendation": recommendation}

@@ -1,145 +1,63 @@
 import os
-import time
-from datetime import datetime, timezone, date
+import logging
+from datetime import datetime, timezone, date, timedelta
 from garminconnect import Garmin
 from dotenv import load_dotenv
 
 load_dotenv()
 
+log = logging.getLogger(__name__)
 
-def get_health_metrics():
-    """Fetch current health metrics including HRV, sleep, stress, and recovery"""
+
+def get_client():
+    """Log in to Garmin Connect once and return an authenticated client."""
     email = os.getenv("GARMIN_EMAIL")
     password = os.getenv("GARMIN_PASSWORD")
-
     client = Garmin(email, password)
     client.login()
+    return client
 
-    # Get today's health snapshot
-    today = date.today()
-    health_data = {
-        "hrv": None,
-        "resting_hr": None,
-        "sleep_duration": None,
-        "sleep_quality": None,
-        "stress_level": None,
-        "recovery_time": None,
-        "body_battery": None,
-    }
 
+def _safe(label, fn, *args, **kwargs):
+    """Run a Garmin API call and log (rather than raise) on failure."""
     try:
-        # Heart Rate Variability - needs date parameter
-        hrv_data = client.get_hrv_data(today)
-        if hrv_data:
-            health_data["hrv"] = hrv_data.get("lastNightAverage")
+        return fn(*args, **kwargs)
     except Exception as e:
-        print(f"Could not fetch HRV: {e}")
+        log.warning("Garmin %s failed: %s", label, e)
+        return None
 
+
+def _normalize_start_date(raw):
+    """Convert Garmin's "YYYY-MM-DD HH:MM:SS" (UTC) into ISO 8601 with Z."""
+    if not raw:
+        return ""
+    iso = raw.replace(" ", "T")
+    if not iso.endswith("Z"):
+        iso += "Z"
+    return iso
+
+
+def _activity_dt(raw):
+    """Parse a Garmin startTimeGMT string into a UTC-aware datetime, or None."""
+    if not raw:
+        return None
     try:
-        # Stress data
-        stress_data = client.get_stress_data(today)
-        if stress_data:
-            health_data["stress_level"] = stress_data.get("currentStress")
-    except Exception as e:
-        print(f"Could not fetch stress data: {e}")
-
-    try:
-        # Sleep data - needs date parameter
-        sleep_data = client.get_sleep_data(today)
-        if sleep_data:
-            health_data["sleep_duration"] = sleep_data.get("totalSleepTime")
-            health_data["sleep_quality"] = sleep_data.get("sleepQuality")
-    except Exception as e:
-        print(f"Could not fetch sleep data: {e}")
-
-    try:
-        # Body Battery - needs date parameter
-        body_battery = client.get_body_battery(today)
-        if body_battery:
-            health_data["body_battery"] = body_battery.get("currentBattery")
-    except Exception as e:
-        print(f"Could not fetch body battery: {e}")
-
-    try:
-        # Resting HR from stats
-        stats = client.get_stats(today)
-        if stats:
-            health_data["resting_hr"] = stats.get("restingHeartRate")
-    except Exception as e:
-        print(f"Could not fetch resting HR: {e}")
-
-    return health_data
+        return datetime.fromisoformat(raw.replace(" ", "T")).replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
 
 
-def fetch_daily_health_data(activity_dates):
-    """Fetch health metrics for each activity date"""
-    email = os.getenv("GARMIN_EMAIL")
-    password = os.getenv("GARMIN_PASSWORD")
+def fetch_activities(client, weeks=None):
+    """Fetch running activities from Garmin Connect.
 
-    client = Garmin(email, password)
-    client.login()
-
-    health_by_date = {}
-
-    for activity_date in activity_dates:
-        try:
-            date_obj = datetime.fromisoformat(activity_date.replace("Z", "+00:00")).date()
-            health_metrics = {}
-
-            try:
-                hrv_data = client.get_hrv_data(date_obj)
-                if hrv_data:
-                    health_metrics["hrv"] = hrv_data.get("lastNightAverage")
-            except:
-                pass
-
-            try:
-                stress_data = client.get_stress_data(date_obj)
-                if stress_data:
-                    health_metrics["stress"] = stress_data.get("currentStress")
-            except:
-                pass
-
-            try:
-                sleep_data = client.get_sleep_data(date_obj)
-                if sleep_data:
-                    health_metrics["sleep_duration"] = sleep_data.get("totalSleepTime")
-                    health_metrics["sleep_quality"] = sleep_data.get("sleepQuality")
-            except:
-                pass
-
-            try:
-                body_battery = client.get_body_battery(date_obj)
-                if body_battery:
-                    health_metrics["body_battery"] = body_battery.get("currentBattery")
-            except:
-                pass
-
-            if health_metrics:
-                health_by_date[activity_date.split("T")[0]] = health_metrics
-        except:
-            continue
-
-    return health_by_date
-
-
-def fetch_activities(weeks=None):
-    """Fetch all running activities from Garmin Connect (all historical data by default)"""
-    email = os.getenv("GARMIN_EMAIL")
-    password = os.getenv("GARMIN_PASSWORD")
-
-    client = Garmin(email, password)
-    client.login()
-
-    # Set cutoff date - if weeks is None, fetch all data
+    If weeks is None, returns all historical runs. Otherwise stops at the cutoff.
+    """
     if weeks is not None:
-        cutoff = time.time() - (weeks * 7 * 24 * 3600)
-        cutoff_dt = datetime.fromtimestamp(cutoff, tz=timezone.utc)
+        cutoff_dt = datetime.now(timezone.utc) - timedelta(weeks=weeks)
     else:
         cutoff_dt = None
 
-    # Fetch all activities with pagination
-    all_activities = []
+    runs = []
     start = 0
     limit = 100
 
@@ -149,29 +67,112 @@ def fetch_activities(weeks=None):
             break
 
         for activity in batch:
-            start_gmt = activity.get("startTimeGMT", "")
-            try:
-                activity_dt = datetime.fromisoformat(start_gmt).replace(tzinfo=timezone.utc)
-            except ValueError:
+            activity_dt = _activity_dt(activity.get("startTimeGMT"))
+            if activity_dt is None:
                 continue
 
-            # Stop if we've reached the cutoff date (only if cutoff is set)
+            # Garmin returns activities newest-first, so we can stop early.
             if cutoff_dt and activity_dt < cutoff_dt:
-                return all_activities
+                return runs
 
-            activity_type = activity.get("activityType", {}).get("typeKey", "")
-            if activity_type != "running":
+            if activity.get("activityType", {}).get("typeKey") != "running":
                 continue
 
-            all_activities.append({
+            runs.append({
+                "id": activity.get("activityId"),
                 "name": activity.get("activityName", "Run"),
+                "type": "Run",
+                "start_date": _normalize_start_date(activity.get("startTimeGMT")),
                 "distance": activity.get("distance", 0),
                 "moving_time": int(activity.get("movingDuration") or activity.get("duration", 0)),
-                "start_date": start_gmt + "Z" if start_gmt and not start_gmt.endswith("Z") else start_gmt,
-                "type": "Run",
+                "elevation_gain": activity.get("elevationGain"),
+                "calories": activity.get("calories"),
                 "average_heartrate": activity.get("averageHR"),
+                "max_heartrate": activity.get("maxHR"),
+                "average_pace": activity.get("averageSpeed"),  # m/s
+                "average_cadence": activity.get("averageRunningCadenceInStepsPerMinute"),
+                "training_load": activity.get("activityTrainingLoad"),
+                "aerobic_te": activity.get("aerobicTrainingEffect"),
+                "anaerobic_te": activity.get("anaerobicTrainingEffect"),
             })
 
         start += limit
 
-    return all_activities
+    return runs
+
+
+def _extract_hrv(payload):
+    """Pull last-night HRV average from the HRV API response."""
+    if not payload:
+        return None
+    summary = payload.get("hrvSummary") or {}
+    return summary.get("lastNightAvg")
+
+
+def _extract_sleep(payload):
+    """Pull sleep duration (hours) and overall sleep score from the sleep API."""
+    if not payload:
+        return None, None
+    dto = payload.get("dailySleepDTO") or {}
+    seconds = dto.get("sleepTimeSeconds")
+    hours = round(seconds / 3600, 2) if seconds else None
+    score = ((dto.get("sleepScores") or {}).get("overall") or {}).get("value")
+    return hours, score
+
+
+def fetch_health_for_date(client, day):
+    """Fetch a single day's health snapshot.
+
+    Combines HRV, sleep, and the daily stats summary (which already contains
+    body battery, stress, and resting HR) into one dict. Returns None for any
+    metric Garmin doesn't have for that day.
+    """
+    day_str = day.isoformat() if isinstance(day, date) else day
+
+    hrv = _safe("hrv", client.get_hrv_data, day_str)
+    sleep = _safe("sleep", client.get_sleep_data, day_str)
+    stats = _safe("stats", client.get_stats, day_str) or {}
+    readiness = _safe("training_readiness", client.get_training_readiness, day_str)
+
+    sleep_hours, sleep_score = _extract_sleep(sleep)
+
+    # Training readiness API returns a list (one entry per device); take the first.
+    readiness_entry = readiness[0] if isinstance(readiness, list) and readiness else {}
+
+    return {
+        "date": day_str,
+        "hrv": _extract_hrv(hrv),
+        "resting_hr": stats.get("restingHeartRate"),
+        "sleep_duration": sleep_hours,
+        "sleep_quality": sleep_score,
+        "stress_avg": stats.get("averageStressLevel"),
+        "stress_max": stats.get("maxStressLevel"),
+        "body_battery_high": stats.get("bodyBatteryHighestValue"),
+        "body_battery_low": stats.get("bodyBatteryLowestValue"),
+        "body_battery_current": stats.get("bodyBatteryMostRecentValue"),
+        "steps": stats.get("totalSteps"),
+        "training_readiness": readiness_entry.get("score"),
+        "training_readiness_level": readiness_entry.get("level"),
+        "recovery_time_hours": readiness_entry.get("recoveryTime"),
+    }
+
+
+def fetch_health_range(client, days=30):
+    """Fetch health snapshots for the last N days, keyed by YYYY-MM-DD."""
+    today = date.today()
+    health_by_date = {}
+
+    for offset in range(days):
+        day = today - timedelta(days=offset)
+        snapshot = fetch_health_for_date(client, day)
+        # Only keep snapshots that have at least one real metric.
+        if any(v is not None for k, v in snapshot.items() if k != "date"):
+            health_by_date[day.isoformat()] = snapshot
+
+    return health_by_date
+
+
+def get_health_metrics():
+    """Convenience wrapper: today's health snapshot."""
+    client = get_client()
+    return fetch_health_for_date(client, date.today())
