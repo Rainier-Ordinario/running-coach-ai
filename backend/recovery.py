@@ -87,8 +87,23 @@ Recent Training:
 """
 
 
+def _split_decision(text):
+    """Pull a leading REST/TRAIN token off the response and return (decision, body)."""
+    if not text:
+        return None, text or ""
+    first_line, _, rest = text.strip().partition("\n")
+    token = first_line.strip().rstrip(".:!").upper()
+    if token in {"REST", "TRAIN"}:
+        return token, rest.lstrip()
+    return None, text
+
+
 def get_recovery_recommendation(activities, health_data):
-    """Ask Claude for a REST-vs-TRAIN recommendation grounded in the data."""
+    """Ask Claude for a REST-vs-TRAIN recommendation grounded in the data.
+
+    Returns a dict with the decision badge, the markdown explanation, and the
+    underlying trend metrics so the UI can render its summary cards.
+    """
     client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
     trends = calculate_health_trends(health_data)
@@ -98,12 +113,13 @@ def get_recovery_recommendation(activities, health_data):
     system_prompt = (
         "You are an expert sports physiologist and recovery specialist. "
         "Based on the athlete's health metrics trends and recent training data, "
-        "provide a clear recommendation: REST or TRAIN. "
-        "Consider HRV trends, sleep quality, stress levels, body battery status, "
-        "training readiness, and recent training volume. "
-        "If recommending rest, explain why and suggest recovery activities. "
-        "If recommending training, specify intensity (easy, moderate, hard) and duration. "
-        "Be direct and specific — reference the actual numbers."
+        "decide whether the athlete should REST or TRAIN today.\n\n"
+        "Format your response exactly like this:\n"
+        "Line 1: a single word — REST or TRAIN — and nothing else.\n"
+        "Lines 2+: a markdown explanation that references the actual numbers. "
+        "If recommending REST, suggest recovery activities (stretching, foam rolling, walk). "
+        "If recommending TRAIN, specify intensity (easy, moderate, hard) and a target duration. "
+        "Use short paragraphs and bullet points. Be direct."
     )
 
     response = client.messages.create(
@@ -112,4 +128,9 @@ def get_recovery_recommendation(activities, health_data):
         system=system_prompt,
         messages=[{"role": "user", "content": user_prompt}],
     )
-    return response.content[0].text
+    decision, body = _split_decision(response.content[0].text)
+    return {
+        "decision": decision,
+        "recommendation": body,
+        "metrics": trends,
+    }

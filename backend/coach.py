@@ -22,7 +22,11 @@ def ask_coach(question, history, activities_summary):
     )
 
     # Replay prior turns for conversation continuity, then append the new question.
-    messages = [{"role": m["role"], "content": m["content"]} for m in history]
+    # Frontend uses "coach" as the assistant role label; Anthropic expects "assistant".
+    messages = [
+        {"role": "assistant" if m["role"] == "coach" else "user", "content": m["content"]}
+        for m in history
+    ]
     messages.append({"role": "user", "content": question})
 
     response = client.messages.create(
