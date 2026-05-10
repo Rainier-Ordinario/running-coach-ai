@@ -32,7 +32,7 @@ function Header({ today, totals, firstName, eyebrowSuffix }) {
           <div className="mono x-small muted">runs</div>
           <div className="mono header-stat-value">{totals?.ytd_runs ?? 0}</div>
         </div>
-        <button className="cmd-btn mono">⌘ K</button>
+        
       </div>
     </header>
   )

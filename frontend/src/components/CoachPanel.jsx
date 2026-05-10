@@ -3,11 +3,9 @@ import { postChat } from '../api'
 
 const SUGGESTED_PROMPTS = [
   'Should I run today, or rest?',
-  'Plan my recovery week.',
   'How did the marathon compare to my training?',
   'What was my biggest training mistake going into the race?',
   'When can I start hard intervals again?',
-  "How's my sleep affecting recovery?",
 ]
 
 const STORAGE_KEY = 'runnercoach.chat.v1'
