@@ -10,9 +10,11 @@ from formatter import format_activities
 from coach import ask_coach
 from recovery import get_recovery_recommendation
 from dashboard import build_dashboard
+from garmin import get_client, fetch_profile
 from paths import ACTIVITIES_PATH
 
 logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -34,19 +36,32 @@ def _load_data():
         return json.load(f)
 
 
+def _save_data(data):
+    """Persist the activities cache back to disk."""
+    with open(ACTIVITIES_PATH, "w") as f:
+        json.dump(data, f)
+
+
 @app.get("/api/status")
 def get_status():
     """Report whether synced data exists and when it was last refreshed."""
     if not os.path.exists(ACTIVITIES_PATH):
-        return {"has_data": False, "activity_count": 0, "synced_at": None}
+        return {
+            "has_data": False,
+            "activity_count": 0,
+            "synced_at": None,
+            "has_profile": False,
+        }
 
     with open(ACTIVITIES_PATH) as f:
         data = json.load(f)
 
+    profile = data.get("profile") or {}
     return {
         "has_data": True,
         "activity_count": len(data.get("activities", [])),
         "synced_at": data.get("synced_at"),
+        "has_profile": bool(profile.get("full_name") or profile.get("display_name")),
     }
 
 
@@ -87,3 +102,25 @@ def dashboard():
         data.get("activities", []),
         data.get("health_data", {}),
     )
+
+
+@app.get("/api/profile")
+def profile():
+    """Return the athlete's name; lazily fetch from Garmin and cache on first miss."""
+    data = _load_data()
+
+    cached = data.get("profile") or {}
+    if cached.get("full_name") or cached.get("display_name"):
+        return cached
+
+    # Cache miss — log into Garmin once and persist back to the activities file.
+    try:
+        client = get_client()
+        fetched = fetch_profile(client)
+    except Exception as e:
+        log.warning("Profile fetch failed: %s", e)
+        raise HTTPException(status_code=502, detail="Could not reach Garmin.")
+
+    data["profile"] = fetched
+    _save_data(data)
+    return fetched

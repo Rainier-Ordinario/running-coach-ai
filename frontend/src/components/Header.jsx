@@ -1,14 +1,16 @@
 import { fmtPrettyDate } from '../format'
 
 // Greeting eyebrow + 7d / YTD / runs stats. Cmd-K is decorative for now.
-function Header({ today, totals, eyebrowSuffix }) {
+function Header({ today, totals, firstName, eyebrowSuffix }) {
   const eyebrow = `${fmtPrettyDate(today)}${eyebrowSuffix ? ` · ${eyebrowSuffix}` : ''}`
+  // While the profile is in flight, show a neutral placeholder.
+  const greeting = firstName ? `Welcome back, ${firstName}.` : 'Welcome back, Athlete.'
 
   return (
     <header className="header">
       <div>
         <div className="hello-eyebrow mono">{eyebrow}</div>
-        <h1 className="hello">Welcome back.</h1>
+        <h1 className="hello">{greeting}</h1>
       </div>
 
       <div className="header-stats">

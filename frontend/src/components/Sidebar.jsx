@@ -20,7 +20,18 @@ function fmtSyncedAt(iso) {
   return `${date} · ${time} UTC`
 }
 
-function Sidebar({ syncedAt, onSyncComplete }) {
+// "Rainier Ordinario" -> "RO"; single-name -> first letter; nothing -> "—".
+function deriveInitials(profile) {
+  const full = profile?.full_name?.trim()
+  if (!full) return '—'
+  const parts = full.split(/\s+/).filter(Boolean)
+  if (parts.length === 1) return parts[0][0].toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
+function Sidebar({ syncedAt, onSyncComplete, profile }) {
+  const displayName = profile?.first_name || profile?.full_name || 'Athlete'
+  const initials = deriveInitials(profile)
   return (
     <nav className="sidebar">
       <div className="brand">
@@ -50,9 +61,9 @@ function Sidebar({ syncedAt, onSyncComplete }) {
           <SyncButton onSyncComplete={onSyncComplete} />
         </div>
         <div className="profile">
-          <div className="profile-avatar mono">RO</div>
+          <div className="profile-avatar mono">{initials}</div>
           <div>
-            <div className="profile-name">Athlete</div>
+            <div className="profile-name">{displayName}</div>
             <div className="profile-sub mono">marathoner</div>
           </div>
         </div>

@@ -16,6 +16,10 @@ export function getDashboard() {
   return fetch('/api/dashboard').then(jsonOrThrow)
 }
 
+export function getProfile() {
+  return fetch('/api/profile').then(jsonOrThrow)
+}
+
 export function postSync() {
   return fetch('/api/sync', { method: 'POST' }).then(jsonOrThrow)
 }
