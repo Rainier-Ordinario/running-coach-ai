@@ -1,41 +1,33 @@
 import { useState } from 'react'
-import '../styles/SyncButton.css'
+import { postSync } from '../api'
 
+// Sync trigger styled to fit inside the sidebar's sync-card.
 function SyncButton({ onSyncComplete }) {
   const [state, setState] = useState('default')
   const [count, setCount] = useState(0)
 
   const handleSync = async () => {
     setState('loading')
-
     try {
-      const response = await fetch('/api/sync', { method: 'POST' })
-      const data = await response.json()
-
+      const data = await postSync()
       setCount(data.count)
       setState('success')
-
-      // Reset button after 3 seconds
+      // Snap back to the default label after a short success window.
       setTimeout(() => setState('default'), 3000)
-      onSyncComplete()
-    } catch (error) {
-      console.error('Sync failed:', error)
+      if (onSyncComplete) onSyncComplete()
+    } catch (e) {
+      console.error('Sync failed:', e)
       setState('default')
     }
   }
 
-  // Update button text based on state
-  let text = 'Sync Strava'
-  if (state === 'loading') text = 'Syncing...'
-  if (state === 'success') text = `Synced ${count} runs ✓`
+  let label = 'Sync now'
+  if (state === 'loading') label = 'Syncing…'
+  if (state === 'success') label = `Synced ${count} ✓`
 
   return (
-    <button
-      onClick={handleSync}
-      disabled={state === 'loading'}
-      className={`sync-btn sync-${state}`}
-    >
-      {text}
+    <button onClick={handleSync} disabled={state === 'loading'} className="sync-btn mono">
+      {label}
     </button>
   )
 }

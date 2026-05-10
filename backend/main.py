@@ -9,6 +9,7 @@ from sync import sync
 from formatter import format_activities
 from coach import ask_coach
 from recovery import get_recovery_recommendation
+from dashboard import build_dashboard
 from paths import ACTIVITIES_PATH
 
 logging.basicConfig(level=logging.INFO)
@@ -72,8 +73,17 @@ def chat(request: dict):
 def recovery():
     """Return a rest-vs-train recommendation based on health trends."""
     data = _load_data()
-    recommendation = get_recovery_recommendation(
+    return get_recovery_recommendation(
         data.get("activities", []),
         data.get("health_data", {}),
     )
-    return {"recommendation": recommendation}
+
+
+@app.get("/api/dashboard")
+def dashboard():
+    """Aggregated stats + most recent health snapshot for the dashboard view."""
+    data = _load_data()
+    return build_dashboard(
+        data.get("activities", []),
+        data.get("health_data", {}),
+    )
