@@ -3,7 +3,7 @@ import json
 import logging
 from datetime import datetime, timezone
 
-from garmin import get_client, fetch_activities, fetch_health_range
+from garmin import get_client, fetch_activities, fetch_health_range, fetch_profile
 from paths import DATA_DIR, ACTIVITIES_PATH
 
 log = logging.getLogger(__name__)
@@ -25,6 +25,13 @@ def sync():
     health_data = fetch_health_range(client, days=HEALTH_LOOKBACK_DAYS)
     log.info("Fetched health data for %d days", len(health_data))
 
+    # Profile rarely changes but the call is cheap; cache it alongside the rest.
+    try:
+        profile = fetch_profile(client)
+    except Exception as e:
+        log.warning("Profile fetch failed: %s", e)
+        profile = None
+
     # Attach matching health snapshot onto each activity for quick lookup.
     for activity in activities:
         day = activity.get("start_date", "")[:10]
@@ -35,6 +42,7 @@ def sync():
         "synced_at": datetime.now(timezone.utc).isoformat(),
         "activities": activities,
         "health_data": health_data,
+        "profile": profile,
     }
 
     with open(ACTIVITIES_PATH, "w") as f:

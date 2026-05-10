@@ -1,12 +1,10 @@
 import { useEffect, useState, useCallback } from 'react'
-import { getStatus, getDashboard } from './api'
+import { getStatus, getDashboard, getProfile } from './api'
 import Sidebar from './components/Sidebar'
 import SyncButton from './components/SyncButton'
 import Header from './components/Header'
 import TodayStrip from './components/TodayStrip'
 import CoachPanel from './components/CoachPanel'
-import LastRunCard from './components/LastRunCard'
-import VitalsCard from './components/VitalsCard'
 import MileageChart from './components/MileageChart'
 import RecentRuns from './components/RecentRuns'
 import './styles/index.css'
@@ -14,20 +12,35 @@ import './styles/index.css'
 function App() {
   const [status, setStatus] = useState(null)
   const [dashboard, setDashboard] = useState(null)
+  const [profile, setProfile] = useState(null)
   const [error, setError] = useState(null)
 
-  // Pull both /api/status and /api/dashboard. Status drives the empty-state UI;
-  // dashboard provides everything the panels need to render.
+  // Pull /api/status, then /api/dashboard + /api/profile in parallel when synced.
+  // Status drives the empty-state UI and tells us whether profile is already cached
+  // (a cache miss triggers a Garmin auth call so it can be slow on first run).
   const refresh = useCallback(async () => {
     try {
       const s = await getStatus()
       setStatus(s)
-      if (s.has_data) {
-        const d = await getDashboard()
-        setDashboard(d)
-      } else {
+
+      if (!s.has_data) {
         setDashboard(null)
+        setProfile(null)
+        setError(null)
+        return
       }
+
+      const dashboardPromise = getDashboard()
+      // Always try /api/profile when we have data; the endpoint will lazily fetch
+      // and cache on first call. Swallow errors so the UI still renders.
+      const profilePromise = getProfile().catch((e) => {
+        console.warn('Profile fetch failed (falling back to placeholder):', e)
+        return null
+      })
+
+      const [d, p] = await Promise.all([dashboardPromise, profilePromise])
+      setDashboard(d)
+      setProfile(p)
       setError(null)
     } catch (e) {
       console.error(e)
@@ -61,17 +74,20 @@ function App() {
   const totals = dashboard?.totals
   const currentHealth = dashboard?.current_health
   const activities = dashboard?.activities || []
-  const health = dashboard?.health || []
   const weeks = dashboard?.weekly_mileage || []
   const today = dashboard?.today
   const latestRace = activities.find((a) => a.tag === 'RACE') || null
 
   return (
     <div className="app-shell">
-      <Sidebar syncedAt={status?.synced_at} onSyncComplete={refresh} />
+      <Sidebar
+        syncedAt={status?.synced_at}
+        onSyncComplete={refresh}
+        profile={profile}
+      />
 
       <main className="main">
-        <Header today={today} totals={totals} />
+        <Header today={today} totals={totals} firstName={profile?.first_name} />
 
         <TodayStrip
           today={today}
@@ -79,13 +95,7 @@ function App() {
           latestRace={latestRace}
         />
 
-        <div className="grid grid-3col">
-          <CoachPanel readiness={currentHealth?.readiness} />
-          <aside className="context-col">
-            <LastRunCard activities={activities} />
-            <VitalsCard health={health} />
-          </aside>
-        </div>
+        <CoachPanel readiness={currentHealth?.readiness} />
 
         <section className="grid grid-2col-balanced">
           <div className="card mileage-card">

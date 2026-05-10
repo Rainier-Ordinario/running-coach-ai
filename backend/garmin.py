@@ -176,3 +176,17 @@ def get_health_metrics():
     """Convenience wrapper: today's health snapshot."""
     client = get_client()
     return fetch_health_for_date(client, date.today())
+
+
+def fetch_profile(client):
+    """Fetch the athlete's social profile (display name + full name) from Garmin."""
+    payload = client.connectapi("/userprofile-service/socialProfile") or {}
+    full_name = (payload.get("fullName") or "").strip()
+    display_name = (payload.get("displayName") or "").strip()
+    # Prefer the first whitespace-delimited token of fullName; fall back to displayName.
+    first_name = full_name.split()[0] if full_name else display_name
+    return {
+        "full_name": full_name or None,
+        "display_name": display_name or None,
+        "first_name": first_name or None,
+    }

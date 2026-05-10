@@ -224,7 +224,6 @@ input, textarea { font: inherit; color: inherit; }
 
 /* ==================== Grid ==================== */
 .grid                  { display: grid; gap: 18px; }
-.grid-3col             { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
 .grid-2col             { grid-template-columns: minmax(0, 1fr); }
 .grid-2col-balanced    { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
 
@@ -242,8 +241,6 @@ input, textarea { font: inherit; color: inherit; }
 .card-tag     { font-size: 11px; color: var(--text-muted); padding: 4px 8px; background: var(--surface-2); border-radius: 6px; }
 
 /* ==================== Coach ==================== */
-.context-col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
-
 .coach {
   background: var(--surface-1);
   border: 1px solid var(--border);
@@ -392,29 +389,6 @@ input, textarea { font: inherit; color: inherit; }
 .coach-send:disabled             { opacity: 0.4; cursor: not-allowed; }
 .coach-send .dots span           { background: var(--bg); }
 
-/* ==================== Last run ==================== */
-.last-run-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  padding: 6px 0;
-}
-.last-run-stat              { display: flex; flex-direction: column; gap: 3px; }
-.last-run-stat-value        { font-size: 18px; font-weight: 500; letter-spacing: -0.02em; }
-.last-run-stat-unit         { font-size: 11px; color: var(--text-muted); margin-left: 2px; font-weight: 400; }
-
-.last-run-zones { display: grid; grid-template-columns: 60px 1fr 30px; align-items: center; gap: 10px; }
-.zones-label    { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
-.zones-bar      { height: 6px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }
-.zones-fill     { height: 100%; background: var(--accent); border-radius: 3px; }
-.zones-fill.anaerobic { background: var(--warn); }
-.zones-value    { font-size: 12px; text-align: right; }
-
-/* ==================== Vitals ==================== */
-.vitals-row       { display: flex; flex-direction: column; gap: 6px; }
-.vitals-row-head  { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; }
-.vitals-name      { color: var(--text-muted); font-size: 12px; }
-
 /* ==================== Mileage chart ==================== */
 .mileage-chart { padding-top: 8px; }
 .mileage-bars {
@@ -500,7 +474,6 @@ input, textarea { font: inherit; color: inherit; }
 
 /* ==================== Responsive ==================== */
 @media (max-width: 1180px) {
-  .grid-3col          { grid-template-columns: 1fr; }
   .grid-2col-balanced { grid-template-columns: 1fr; }
   .today-strip        { grid-template-columns: 1fr; }
   .today-metrics      { grid-template-columns: repeat(3, 1fr); }
