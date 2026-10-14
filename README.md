@@ -115,13 +115,7 @@ Open <http://localhost:5173> and click **Sync Garmin**.
 
 <!-- Replace these placeholders with real screenshots (e.g. docs/screenshots/*.png). -->
 
-| Dashboard | Coach chat |
-| --- | --- |
-| _TODO: ScreenshotDashboard.png_ | _TODO: coach chat screenshot_ |
-
-| Recovery Advisor | Weekly mileage |
-| --- | --- |
-| _TODO: recovery screenshot_ | _TODO: mileage chart screenshot_ |
+![Dashboard](docs/screenshots/ScreenshotDashboard.png)
 
 ## What I Learned / Design Decisions
 
