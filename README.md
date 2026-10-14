@@ -111,7 +111,7 @@ Open <http://localhost:5173> and click **Sync Garmin**.
 
 | Dashboard | Coach chat |
 | --- | --- |
-| _TODO: dashboard screenshot_ | _TODO: coach chat screenshot_ |
+| _TODO: ScreenshotDashboard.png_ | _TODO: coach chat screenshot_ |
 
 | Recovery Advisor | Weekly mileage |
 | --- | --- |
