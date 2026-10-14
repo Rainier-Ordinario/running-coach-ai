@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
+from config import CLAUDE_MODEL
 from formatter import format_activities
 
 load_dotenv()
 
-MODEL = "claude-opus-4-7"
 TREND_WINDOW_DAYS = 7
 
 
@@ -123,12 +123,14 @@ def get_recovery_recommendation(activities, health_data):
     )
 
     response = client.messages.create(
-        model=MODEL,
+        model=CLAUDE_MODEL,
         max_tokens=1024,
         system=system_prompt,
         messages=[{"role": "user", "content": user_prompt}],
     )
-    decision, body = _split_decision(response.content[0].text)
+    # Models with thinking on put a thinking block first, so find the text block.
+    text = next((b.text for b in response.content if b.type == "text"), "")
+    decision, body = _split_decision(text)
     return {
         "decision": decision,
         "recommendation": body,

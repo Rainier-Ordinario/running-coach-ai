@@ -39,6 +39,7 @@ flowchart LR
 ```
 backend/
   main.py        FastAPI app and routes
+  config.py      Settings read from .env (Claude model)
   sync.py        Garmin → activities.json
   garmin.py      Garmin client, activity + health fetching
   dashboard.py   Dashboard aggregation (pure)
@@ -62,13 +63,18 @@ frontend/src/
 
 ### 1. Environment variables
 
-Create a `.env` file in the repository root:
+Copy the template in the repository root and fill it in:
 
 ```bash
-GARMIN_EMAIL=you@example.com
-GARMIN_PASSWORD=your-garmin-password
-ANTHROPIC_API_KEY=sk-ant-...
+cp .env.example .env
 ```
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `GARMIN_EMAIL` | for sync | Garmin Connect login |
+| `GARMIN_PASSWORD` | for sync | Garmin Connect password |
+| `ANTHROPIC_API_KEY` | for coach + recovery | Claude API key |
+| `CLAUDE_MODEL` | no | Claude model ID; defaults to `claude-opus-4-7` |
 
 `.env` is gitignored — never commit it.
 

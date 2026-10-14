@@ -3,9 +3,10 @@ import os
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
+from config import CLAUDE_MODEL
+
 load_dotenv()
 
-MODEL = "claude-opus-4-7"
 MAX_TOKENS = 1024
 
 
@@ -30,9 +31,10 @@ def ask_coach(question, history, activities_summary):
     messages.append({"role": "user", "content": question})
 
     response = client.messages.create(
-        model=MODEL,
+        model=CLAUDE_MODEL,
         max_tokens=MAX_TOKENS,
         system=system_prompt,
         messages=messages,
     )
-    return response.content[0].text
+    # Models with thinking on put a thinking block first, so find the text block.
+    return next((b.text for b in response.content if b.type == "text"), "")
