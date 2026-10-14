@@ -119,9 +119,16 @@ Open <http://localhost:5173> and click **Sync Garmin**.
 
 ## What I Learned / Design Decisions
 
-- TODO: Why cache Garmin data in a local JSON file instead of calling Garmin on every request
-- TODO: How I designed the prompts (compact one-line-per-run format, REST/TRAIN on line 1)
-- TODO: Handling missing/partial health data from Garmin
-- TODO: Splitting pure logic (dashboard, formatter, trends) from I/O so it can be unit tested
-- TODO: Biggest bug I hit and how I debugged it
-- TODO: What I'd do next (auth, database, deployment, …)
+## What I learned / design decisions
+
+- **Caching Garmin data locally:** Only the sync endpoint talks to Garmin; every other endpoint reads a local JSON cache. Garmin's login is slow and the library I use is unofficial, so calling it on every page load would be slow and risk getting rate-limited. The trade-off is that data is only as fresh as the last sync, which is fine for daily training data.
+
+- **Prompt design:** Each run is formatted as one compact line, capped at the last 80 runs, so prompts stay small and cheap while still giving the model useful context. The Recovery Advisor asks Claude to start its answer with REST or TRAIN, so the code can read the decision reliably and show it in the UI instead of interpreting a paragraph.
+
+- **Handling missing health data:** Garmin doesn't always return every metric (for example, no HRV if I didn't wear my watch overnight). Each health request is wrapped so one failed call doesn't crash the whole sync, and trend calculations skip missing values instead of treating them as zero, which would make the averages wrong.
+
+- **Separating pure logic from I/O:** Calculations like pace, weekly mileage and health trends are pure functions that take data and return results, while the Garmin and Claude calls live separately. This makes the core logic easy to unit test with fake data, without network access, credentials or API costs.
+
+- **Biggest bug:** A nested folder path meant my `.gitignore` rule didn't match, so my real run data, including GPS start locations, was committed to a public repo. I removed it from every commit with `git filter-repo`, recreated the repo so the old commits were gone, and changed the rule to ignore data files at any depth. Now I check the full git history, not just current files, before making a repo public.
+
+- **What I'd do next:** Add user accounts so others can connect their own Garmin, move from a JSON file to a PostgreSQL database, deploy with Docker and CI, and add scheduled background syncs so data stays fresh without clicking Sync.
