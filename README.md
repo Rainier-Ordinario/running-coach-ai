@@ -113,15 +113,11 @@ Open <http://localhost:5173> and click **Sync Garmin**.
 | --- | --- |
 | _TODO: ScreenshotDashboard.png_ | _TODO: coach chat screenshot_ |
 
-/ScreenshotDashboard.png
-
 | Recovery Advisor | Weekly mileage |
 | --- | --- |
 | _TODO: recovery screenshot_ | _TODO: mileage chart screenshot_ |
 
 ## What I Learned / Design Decisions
-
-## What I learned / design decisions
 
 - **Caching Garmin data locally:** Only the sync endpoint talks to Garmin; every other endpoint reads a local JSON cache. Garmin's login is slow and the library I use is unofficial, so calling it on every page load would be slow and risk getting rate-limited. The trade-off is that data is only as fresh as the last sync, which is fine for daily training data.
 
