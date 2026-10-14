@@ -2,7 +2,7 @@
 __pycache__/
 *.pyc
 venv/
-backend/data/*.json
+**/data/*.json
 node_modules/
 frontend/dist/
 test_oauth.py
